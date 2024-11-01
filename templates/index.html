@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>ProgressiveOverload</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    </head>
+    <body>
+        <nav class="nav_bar">
+            <img src="{{ url_for('static', filename='ProgresiveOverloadLogo.png') }}" alt="ProgressiveOverloadLogo">
+            <a href="/chart">Charts</a>
+            <a href="/">Diary</a>
+            <a href="/logout">Logout</a>
+        </nav> 
+
+
+        <div class="date">
+            <!--change and display the date-->
+            <form action="/" method ="POST">
+                <label for="date"></label>
+                <input type="date" id="date" name="date" value="{{ selected_date }}" onchange="this.form.submit()">
+                <button type="submit" name="previous" value="prev">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
+                    </svg>
+                </button>
+                <button type="submit" name = "next" value="next">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8"/>
+                    </svg>
+                </button>
+            </form>
+        </div>
+
+        <div class="index-buttons">
+            <button id="addSetButton">Add Set</button>
+            <button id="addExerciseButton">Add Custom Exercise</button>
+        </div>
+
+        <!-- display exercises in database and also remove button-->
+        {% if exercises %}
+        <div class="diary_exercises">
+            <table boarder="1" style="border-collapse: collapse;">
+                <tr>
+                    <th>Exercise</th>
+                    <th>Set(s)</th>
+                    <th>Weight</th>
+                    <th>Rep(s)</th>
+
+                </tr>
+                {% for exercise_name, sets in exercises.items() %}
+                    {% for set in sets %}
+                        <tr>
+                            {% if loop.first %}
+                                <td rowspan="{{ sets|length }}">{{ exercise_name }}</td>
+                            {% endif %}
+                            <td>{{ set.set_number }}</td>
+                            <td>{{ set.weight }}kg</td>
+                            <td>{{ set.reps }}</td>
+                            <td>
+                                <form action="/remove_set" method="POST">
+                                    <input type="hidden" name="exercise_name" value="{{ exercise_name }}">
+                                    <input type="hidden" name="set_number" value="{{ set.set_number }}">
+                                    <input type="hidden" name="weight" value="{{ set.weight }}">
+                                    <input type="hidden" name="reps" value="{{ set.reps }}">
+                                    <input type="hidden" name="action" value="remove_set_{{ exercise_name }}_{{ set.set_number }}">
+                                    <input type="hidden" name="date" value="{{ selected_date }}">
+                                    <button type="submit">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-circle" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                                        </svg>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% endfor %}    
+            </table>
+        </div>
+        {% endif %}
+
+        <!--Popup and Overlay for add set button  -->
+        <div class="popup-overlay" id="overlay"></div>
+        <div id="setPopup" class="popup">
+            <div class="popup-content">
+                <h2>Add Set</h2>
+                <form method="POST" action="/add_set">
+                    <select name="exercise_name" id="exercise_select" placeholder="Exercise">
+                        {% for exercise in selectable_exercises %}
+                            <option 
+                                value="{{ exercise }}"
+                                {% if last_added_exercise and exercise == last_added_exercise %}selected{% endif %}
+                            >
+                                {{ exercise }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <input type="number" name="weight" placeholder="Weight">
+                    <input type="number" name="reps" placeholder="Reps">
+                    <input type="hidden" name="user_id" value="{{ session['user_id'] }}">  
+                    <input type="hidden" name="date" value="{{ selected_date }}">
+                    <button type="submit">Add</button>
+                </form>
+            </div>
+        </div>
+
+        <!--Pop and Overlay for add exercise button-->
+        <div id="exercisePopup" class="popup">
+            <div class="popup-content">
+                <h2>Add Exercise</h2>
+                <form method="POST" action="{{ url_for('add_exercise') }}">
+                    <input type="text" name="exercise_name" placeholder="Exercise Name">
+                    <button type="submit">Add</button>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            // Function to show popup and overlay
+            function showPopup(popupId) {
+                document.getElementById(popupId).style.display = "block";
+                document.getElementById("overlay").style.display = "block";
+            }
+
+            // Function to hide popup and overlay
+            function hidePopup(popupId) {
+                document.getElementById(popupId).style.display = "none";
+                document.getElementById("overlay").style.display = "none";
+            }
+
+            // Add Set button click handler
+            document.getElementById("addSetButton").addEventListener("click", function() {
+                showPopup("setPopup");
+            });
+
+            // Add Exercise button click handler
+            document.getElementById("addExerciseButton").addEventListener("click", function() {
+                showPopup("exercisePopup");
+            });
+
+            // Close buttons click handlers
+            document.querySelectorAll(".closePopup").forEach(button => {
+                button.addEventListener("click", function() {
+                    const popup = this.closest(".popup");
+                    hidePopup(popup.id);
+                });
+            });
+
+            // Overlay click handler
+            document.getElementById("overlay").addEventListener("click", function() {
+                document.querySelectorAll(".popup").forEach(popup => {
+                    hidePopup(popup.id);
+                });
+            });
+        </script>
+    </body>
+</html>

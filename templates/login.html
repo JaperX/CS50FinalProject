@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>ProgressiveOverload Login</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    </head>
+    <body>
+        <nav class="nav_bar">
+            <a href="/about"><img src="{{ url_for('static', filename='ProgresiveOverloadLogo.png') }}" alt="ProgressiveOverloadLogo"></a>
+            <a href="/login">Login</a>
+            <a href="/register">Register</a>
+        </nav> 
+
+        <div class="login-form">
+            <form action="/login" method="post">
+                <input type="text" name="username" placeholder="Username">
+                <input type="password" name="password" placeholder="Password">
+                <button type="submit">Login</button>
+                {% if login_error %}
+                    <p> {{ login_error }}</p>
+                {% endif %}
+            </form>  
+        </div>
+    </body>
+</html>

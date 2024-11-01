@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>ProgressiveOverload Charts</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <!-- Add the required adapter for time scale -->
+        <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    </head>
+    <body>
+        <nav class="nav_bar">
+            <img src="{{ url_for('static', filename='ProgresiveOverloadLogo.png') }}" alt="ProgressiveOverloadLogo">
+            <a href="/chart">Charts</a>
+            <a href="/">Diary</a>
+            <a href="/logout">Logout</a>
+        </nav> 
+
+        <div class="date">
+            <form action="/chart" method="POST">
+                <label for="from_month">From</label>
+                <select name="from_month" id="from_month" onchange="this.form.submit()">
+                    <option value="1" {% if selected_from_month == "01" %}selected{% endif %}>January</option>
+                    <option value="2" {% if selected_from_month == "02" %}selected{% endif %}>February</option>
+                    <option value="3" {% if selected_from_month == "03" %}selected{% endif %}>March</option>
+                    <option value="4" {% if selected_from_month == "04" %}selected{% endif %}>April</option>
+                    <option value="5" {% if selected_from_month == "05" %}selected{% endif %}>May</option>
+                    <option value="6" {% if selected_from_month == "06" %}selected{% endif %}>June</option>
+                    <option value="7" {% if selected_from_month == "07" %}selected{% endif %}>July</option>
+                    <option value="8" {% if selected_from_month == "08" %}selected{% endif %}>August</option>
+                    <option value="9" {% if selected_from_month == "09" %}selected{% endif %}>September</option>
+                    <option value="10" {% if selected_from_month == "10" %}selected{% endif %}>October</option>
+                    <option value="11" {% if selected_from_month == "11" %}selected{% endif %}>November</option>
+                    <option value="12" {% if selected_from_month == "12" %}selected{% endif %}>December</option>
+                </select>
+                <label for="to_month">To</label>
+                <select name="to_month" id="to_month" onchange="this.form.submit()">
+                    <option value="1" {% if selected_to_month == "01" %}selected{% endif %}>January</option>
+                    <option value="2" {% if selected_to_month == "02" %}selected{% endif %}>February</option>
+                    <option value="3" {% if selected_to_month == "03" %}selected{% endif %}>March</option>
+                    <option value="4" {% if selected_to_month == "04" %}selected{% endif %}>April</option>
+                    <option value="5" {% if selected_to_month == "05" %}selected{% endif %}>May</option>
+                    <option value="6" {% if selected_to_month == "06" %}selected{% endif %}>June</option>
+                    <option value="7" {% if selected_to_month == "07" %}selected{% endif %}>July</option>
+                    <option value="8" {% if selected_to_month == "08" %}selected{% endif %}>August</option>
+                    <option value="9" {% if selected_to_month == "09" %}selected{% endif %}>September</option>
+                    <option value="10" {% if selected_to_month == "10" %}selected{% endif %}>October</option>
+                    <option value="11" {% if selected_to_month == "11" %}selected{% endif %}>November</option>
+                    <option value="12" {% if selected_to_month == "12" %}selected{% endif %}>December</option>
+                </select>
+
+                <label for="year_date">Year</label>
+                    <select name="year_date" id="year_date" onchange="this.form.submit()">
+                        {% for year in user_years %}
+                        <option {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+                        {% endfor %}
+                    </select>
+                
+                </form>    
+        </div>
+
+        <div class="chart_exercise_select">
+            <label for="selectable_exercises">Exercise:</label>
+            <select name="selectable_exercises" id="selectable_exercises">
+                {% for exercise in selectable_exercises %}
+                <option value="{{ exercise }}">{{ exercise }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="chart-container">
+            <h2>{{ exercise }}</h2>
+            <canvas id="chart" style="width:100%;max-width:700px"></canvas>
+        </div>
+
+    <script>
+        // Create a deep copy of the start date to avoid modifying the original
+        const startDate = new Date("{{ from_date }}");
+        const endDate = new Date("{{ to_date }}");
+        const currentDate = new Date(startDate);
+
+        // Generate an array of dates between startDate and endDate
+        const allDates = [];
+
+        while (currentDate <= endDate) {
+            allDates.push(currentDate.toISOString().slice(0, 10)); // Format as YYYY-MM-DD
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        const exerciseData = {{ exercise_data|tojson|safe }};
+
+        // Get the selected exercise from the dropdown
+        const selectElement = document.getElementById('selectable_exercises');
+        const selectedExercise = selectElement.value;
+
+        // Get data for the selected exercise
+        const selectedExerciseData = exerciseData[selectedExercise] || {};
+
+        // Create arrays for weights and reps data points
+        const weightsDataPoints = [];
+        const repsDataPoints = [];
+
+        // Fill in the actual data points from the exercise data
+        if (selectedExerciseData.dates) {
+            selectedExerciseData.dates.forEach((date, index) => {
+                weightsDataPoints.push({
+                    x: date,
+                    y: selectedExerciseData.weights[index]
+                });
+                
+                repsDataPoints.push({
+                    x: date,
+                    y: selectedExerciseData.reps[index]
+                });
+            });
+        }
+
+        const data = {
+            datasets: [{
+                label: 'Weight (kg)',
+                data: weightsDataPoints,
+                borderColor: "rgb(226, 132, 19)",
+                tension: 0.1,
+                spanGaps: true
+            }, {
+                label: 'Reps',
+                data: repsDataPoints,
+                borderColor: "rgb(227, 29, 18)",
+                tension: 0.1,
+                spanGaps: true
+            }]
+        };
+
+        // Create the chart
+        const ctx = document.getElementById('chart');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: data,
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'day',
+                            parser: 'yyyy-MM-dd',
+                            tooltipFormat: 'MMM d, yyyy',
+                            displayFormats: {
+                                day: 'MMM d'
+                            }
+                        },
+                        min: startDate,
+                        max: endDate,
+                        title: {
+                            display: true,
+                            text: ''
+                        },
+                        grid: {
+                            color: 'grey'
+                        },
+                        ticks: {
+                            color: 'white'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: ''
+                        },
+                        grid: {
+                            color: 'grey'
+                        },
+                        ticks: {
+                            color: 'white'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Update chart when exercise selection changes
+        selectElement.addEventListener('change', function() {
+            const newExercise = this.value;
+            const newData = exerciseData[newExercise] || {};
+            
+            // Create new data points
+            const newWeightsDataPoints = [];
+            const newRepsDataPoints = [];
+            
+            if (newData.dates) {
+                newData.dates.forEach((date, index) => {
+                    newWeightsDataPoints.push({
+                        x: date,
+                        y: newData.weights[index]
+                    });
+                    
+                    newRepsDataPoints.push({
+                        x: date,
+                        y: newData.reps[index]
+                    });
+                });
+            }
+            
+            chart.data.datasets[0].data = newWeightsDataPoints;
+            chart.data.datasets[1].data = newRepsDataPoints;
+            chart.update();
+        });
+        </script>
+    </body>
+</html>
