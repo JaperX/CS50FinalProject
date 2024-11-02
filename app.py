@@ -1,12 +1,10 @@
 from flask import Flask, render_template, request, redirect, session, g, url_for #g is like a global thats unique to each reqesut and resets and stuff
 from flask_session import Session
-from functools import wraps
 from werkzeug.security import check_password_hash, generate_password_hash
-import sqlite3
-import time
+
 from datetime import datetime, timedelta
 
-from app_functions import get_db, close_db, query_db, get_exercise_data, start_date, login_required
+from app_functions import get_db, query_db, get_exercise_data, start_date, login_required
 
 app = Flask(__name__)
 

@@ -7,6 +7,7 @@ from flask import session
 from flask import redirect, session
 from functools import wraps
 
+
 #database helper functions to open and close sqlite3 db
 def get_db():
     if 'db' not in g:
@@ -14,11 +15,13 @@ def get_db():
         g.db.row_factory = sqlite3.Row
     return g.db
 
+
 def close_db(error):
     #close db connection at end of request
     db = g.pop('db', None)
     if db is not None:
         db.close()
+
 
 def query_db(query, args=(), one=False):
     #Execute query and fetch results
@@ -26,6 +29,7 @@ def query_db(query, args=(), one=False):
     rv = cur.fetchall()
     cur.close()
     return (rv[0] if rv else None) if one else rv
+
 
 def start_date(date_request_argument):
     selected_date = date_request_argument
@@ -41,6 +45,8 @@ def start_date(date_request_argument):
         start_date = datetime.now().replace(hour=0, minute=0, second=0)
     return start_date
 
+
+# i got alot of help from AI to make this function
 def get_exercise_data(selectable_exercises, date_str, date_end_str):
         exercise_data = {}
         # For each exercise, get the best sets per day
@@ -92,10 +98,12 @@ def get_exercise_data(selectable_exercises, date_str, date_end_str):
                         exercise_data[exercise]['dates'].append(date)
                         exercise_data[exercise]['weights'].append(record['weight'])
                         exercise_data[exercise]['reps'].append(record['reps'])
-        #print("Chart data:", exercise_data)  # Debug print
 
+        # Debug print: #print("Chart data:", exercise_data)  
         return exercise_data
 
+
+#took this from cs50 finance project
 def login_required(f):
     """
     Decorate routes to require login.
